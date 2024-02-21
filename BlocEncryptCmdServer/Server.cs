@@ -1,10 +1,10 @@
 ﻿using System.Net.Sockets;
 using System.Net;
 using System.Text;
-using System.Text.RegularExpressions;
 using BlocEncryptCmdServer;
 
 var config = new ServerConfig();
+
 try
 {
     await config.LoadConfig();
@@ -14,6 +14,8 @@ catch (Exception ex)
     Console.WriteLine("Ошибка загрузки настроек:");
     Console.WriteLine(ex.Message);
 }
+
+var enc = new Encryptor("ГАММА");
 
 IPHostEntry ipHostInfo = await Dns.GetHostEntryAsync("127.0.0.1");
 IPAddress ipAddress = ipHostInfo.AddressList.Where(address => !address.IsIPv6LinkLocal).First();
@@ -50,9 +52,16 @@ void ServerSender()
         {
             continue;
         }
-
-        var echoBytes = Encoding.UTF8.GetBytes(message);
-        handler.Send(echoBytes, 0);
+        //var message = enc.Encrypt(message);
+        try
+        {
+            var echoBytes = Encoding.UTF8.GetBytes(enc.Encrypt(message));
+            handler.Send(echoBytes, 0);
+        }
+        catch
+        {
+            break;
+        }
     }
 }
 

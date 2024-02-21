@@ -17,20 +17,30 @@ var t2 = new Thread(new ThreadStart(ClientReciever));
 t1.Start();
 t2.Start();
 
-while(t2.IsAlive && t1.IsAlive)
+while (t2.IsAlive && t1.IsAlive)
 {
     await Task.Delay(1000);
 }
+
+client.Shutdown(SocketShutdown.Both);
+return;
 
 void ClientReciever()
 {
     while (true)
     {
         var buffer = new byte[1_024];
-        var received = client.Receive(buffer, SocketFlags.None);
-        var response = Encoding.UTF8.GetString(buffer, 0, received);
+        try
+        {
+            var received = client.Receive(buffer, SocketFlags.None);
+            var response = Encoding.UTF8.GetString(buffer, 0, received);
 
-        Console.WriteLine($"Севрер: {response}");
+            Console.WriteLine($"Севрер: {response}");
+        }
+        catch
+        {
+            break;
+        }
     }
 }
 
@@ -40,10 +50,14 @@ void ClientSender()
     {
         var message = Console.ReadLine();
         if (message == null) continue;
-
-        var messageBytes = Encoding.UTF8.GetBytes(message);
-        _ = client.Send(messageBytes, SocketFlags.None);
+        try
+        {
+            var messageBytes = Encoding.UTF8.GetBytes(message);
+            _ = client.Send(messageBytes, SocketFlags.None);
+        }
+        catch
+        {
+            break;
+        }
     }
 }
-
-client.Shutdown(SocketShutdown.Both);
