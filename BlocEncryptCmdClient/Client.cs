@@ -53,9 +53,9 @@ void ClientReciever()
             var received = client.Receive(buffer, SocketFlags.None);
             var response = Encoding.UTF8.GetString(buffer, 0, received);
 
-            Console.WriteLine($"Севрер шифр.: {response}");
+            Console.WriteLine($"Сервер шифр.: {response}");
             response = enc.Decrypt(response);
-            Console.WriteLine($"Севрер: {response}");
+            Console.WriteLine($"Сервер: {response}");
         }
         catch
         {
