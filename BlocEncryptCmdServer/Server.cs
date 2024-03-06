@@ -15,10 +15,10 @@ catch (Exception ex)
     Console.WriteLine(ex.Message);
 }
 
-var enc = new Encryptor("ГАММА");
+var enc = new ServerEncryptor(config.GetValue(ConfigKey.ChatSecret) ?? "ГАММА");
 
 IPHostEntry ipHostInfo = await Dns.GetHostEntryAsync("127.0.0.1");
-IPAddress ipAddress = ipHostInfo.AddressList.Where(address => !address.IsIPv6LinkLocal).First();
+IPAddress ipAddress = ipHostInfo.AddressList.First(address => !address.IsIPv6LinkLocal);
 IPEndPoint ipEndPoint = new(ipAddress, 11_000);
 
 Console.WriteLine("Адрес сервера: " + ipEndPoint.ToString());
@@ -43,6 +43,9 @@ while (t2.IsAlive && t1.IsAlive)
     await Task.Delay(1000);
 }
 
+t1.Interrupt();
+t2.Interrupt();
+
 void ServerSender()
 {
     while (true)
@@ -52,10 +55,11 @@ void ServerSender()
         {
             continue;
         }
-        //var message = enc.Encrypt(message);
+
         try
         {
-            var echoBytes = Encoding.UTF8.GetBytes(enc.Encrypt(message));
+            message = enc.Encrypt(message);
+            var echoBytes = Encoding.UTF8.GetBytes(message);
             handler.Send(echoBytes, 0);
         }
         catch
@@ -75,6 +79,9 @@ void ServerReceiver()
         {
             var received = handler.Receive(buffer, SocketFlags.None);
             var response = Encoding.UTF8.GetString(buffer, 0, received);
+
+            Console.WriteLine($"Клиент шифр.: {response}");
+            response = enc.Decrypt(response);
             Console.WriteLine($"Клиент: {response}");
         }
         catch

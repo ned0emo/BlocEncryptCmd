@@ -4,21 +4,21 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlocEncryptCmdServer
+namespace BlocEncryptCmdClient
 {
     public enum ConfigKey
     {
         ChatSecret,
     }
 
-    public class ServerConfig
+    public class ClientConfig
     {
         const string cfgFileName = "./config.txt";
         const string alphabet = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
 
         readonly Dictionary<string, string> configs;
 
-        public ServerConfig()
+        public ClientConfig()
         {
             configs = [];
         }

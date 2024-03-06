@@ -1,9 +1,24 @@
 ﻿using System.Net.Sockets;
 using System.Net;
 using System.Text;
+using BlocEncryptCmdClient;
+
+var config = new ClientConfig();
+
+try
+{
+    await config.LoadConfig();
+}
+catch (Exception ex)
+{
+    Console.WriteLine("Ошибка загрузки настроек:");
+    Console.WriteLine(ex.Message);
+}
+
+var enc = new ClientEncryptor(config.GetValue(ConfigKey.ChatSecret) ?? "ГАММА");
 
 IPHostEntry ipHostInfo = await Dns.GetHostEntryAsync("127.0.0.1");
-IPAddress ipAddress = ipHostInfo.AddressList.Where(address => !address.IsIPv6LinkLocal).First();
+IPAddress ipAddress = ipHostInfo.AddressList.First(address => !address.IsIPv6LinkLocal);
 IPEndPoint ipEndPoint = new(ipAddress, 11_000);
 
 using Socket client = new(
@@ -22,6 +37,9 @@ while (t2.IsAlive && t1.IsAlive)
     await Task.Delay(1000);
 }
 
+t1.Interrupt();
+t2.Interrupt();
+
 client.Shutdown(SocketShutdown.Both);
 return;
 
@@ -35,6 +53,8 @@ void ClientReciever()
             var received = client.Receive(buffer, SocketFlags.None);
             var response = Encoding.UTF8.GetString(buffer, 0, received);
 
+            Console.WriteLine($"Севрер шифр.: {response}");
+            response = enc.Decrypt(response);
             Console.WriteLine($"Севрер: {response}");
         }
         catch
@@ -52,6 +72,7 @@ void ClientSender()
         if (message == null) continue;
         try
         {
+            message = enc.Encrypt(message);
             var messageBytes = Encoding.UTF8.GetBytes(message);
             _ = client.Send(messageBytes, SocketFlags.None);
         }
