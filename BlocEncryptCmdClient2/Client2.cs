@@ -1,9 +1,9 @@
 ﻿using System.Net.Sockets;
 using System.Net;
 using System.Text;
-using BlocEncryptCmdClient;
+using BlocEncryptCmdClient2;
 
-var config = new ClientConfig();
+var config = new Client2Config();
 
 try
 {
@@ -19,11 +19,11 @@ catch (Exception ex)
 
 Console.WriteLine("Чат:");
 
-var enc = new ClientEncryptor(config.GetValue(ConfigKey.ChatSecret)!);
+var enc = new Client2Encryptor(config.GetValue(ConfigKey.ChatSecret)!);
 
 IPHostEntry ipHostInfo = await Dns.GetHostEntryAsync("127.0.0.1");
 IPAddress ipAddress = ipHostInfo.AddressList.First(address => !address.IsIPv6LinkLocal);
-IPEndPoint ipEndPoint = new(ipAddress, 11_000);
+IPEndPoint ipEndPoint = new(ipAddress, 11_001);
 
 using Socket client = new(
     ipEndPoint.AddressFamily,
@@ -31,9 +31,6 @@ using Socket client = new(
     ProtocolType.Tcp);
 
 await client.ConnectAsync(ipEndPoint);
-
-
-
 var t1 = new Thread(new ThreadStart(ClientSender));
 var t2 = new Thread(new ThreadStart(ClientReciever));
 t1.Start();
@@ -61,8 +58,8 @@ void ClientReciever()
             var response = Encoding.UTF8.GetString(buffer, 0, received);
 
             var username = response[0..response.IndexOf('|')];
-            var secret = response[(response.IndexOf('|') + 1)..response.IndexOf("||")];
-            var message = new ClientEncryptor(secret).Decrypt(response[(response.IndexOf("||") + 2)..]);
+            var secret = response[(response.IndexOf('|')+1)..response.IndexOf("||")];
+            var message = new Client2Encryptor(secret).Decrypt(response[(response.IndexOf("||")+2)..]);
 
             //response = enc.Decrypt(response);
             Console.WriteLine($"{username}: {message}");
@@ -82,7 +79,6 @@ void ClientSender()
     while (true)
     {
         var message = Console.ReadLine();
-
         if (message == null) continue;
         try
         {
@@ -90,7 +86,7 @@ void ClientSender()
             var messageBytes = Encoding.UTF8.GetBytes(message);
             _ = client.Send(messageBytes, SocketFlags.None);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
             client.Shutdown(SocketShutdown.Both);

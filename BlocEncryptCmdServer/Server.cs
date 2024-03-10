@@ -15,77 +15,81 @@ catch (Exception ex)
     Console.WriteLine(ex.Message);
 }
 
-var enc = new ServerEncryptor(config.GetValue(ConfigKey.ChatSecret) ?? "ГАММА");
+bool alwaysStayAlive = true;
 
 IPHostEntry ipHostInfo = await Dns.GetHostEntryAsync("127.0.0.1");
 IPAddress ipAddress = ipHostInfo.AddressList.First(address => !address.IsIPv6LinkLocal);
-IPEndPoint ipEndPoint = new(ipAddress, 11_000);
 
-Console.WriteLine("Адрес сервера: " + ipEndPoint.ToString());
+Console.WriteLine("Адрес сервера: " + ipAddress.ToString());
+List<Socket> sockets = [];
 
-using Socket listener = new(
-    ipEndPoint.AddressFamily,
-    SocketType.Stream,
-    ProtocolType.Tcp);
-
-listener.Bind(ipEndPoint);
-listener.Listen(100);
-
-var handler = await listener.AcceptAsync();
-
-var t1 = new Thread(new ThreadStart(ServerSender));
-var t2 = new Thread(new ThreadStart(ServerReceiver));
-t1.Start();
-t2.Start();
-
-while (t2.IsAlive && t1.IsAlive)
+const int connNum = 2;
+for (int i = 0; i < connNum; i++)
 {
-    await Task.Delay(1000);
+    IPEndPoint ipEndPoint = new(ipAddress, 11_000 + i);
+    Socket listener = new(ipEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+    listener.Bind(ipEndPoint);
+    listener.Listen(100);
+
+    var handler = listener.AcceptAsync();
+
+    var t2 = new Thread(new ParameterizedThreadStart(ServerReceiver));
+    t2.Start(handler);
 }
 
-t1.Interrupt();
-t2.Interrupt();
-
-void ServerSender()
+do
 {
-    while (true)
-    {
-        var message = Console.ReadLine();
-        if (message == null)
-        {
-            continue;
-        }
+    await Task.Delay(1000);
+}while (alwaysStayAlive || sockets.Count > 0);
 
-        try
+void SendMessage(string message, params Socket[] sockets)
+{
+    try
+    {
+        var echoBytes = Encoding.UTF8.GetBytes(message);
+        foreach (var socket in sockets)
         {
-            message = enc.Encrypt(message);
-            var echoBytes = Encoding.UTF8.GetBytes(message);
-            handler.Send(echoBytes, 0);
+            socket.Send(echoBytes, 0);
         }
-        catch
-        {
-            break;
-        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine(ex.Message);
     }
 }
 
-void ServerReceiver()
+async void ServerReceiver(object? handler)
 {
+    Socket socket;
+
+    if (handler is Task<Socket> skt)
+    {
+        socket = await skt;
+        sockets.Add(socket);
+    }
+    else
+    {
+        return;
+    }
+
     while (true)
     {
-        // Receive message.
         var buffer = new byte[1_024];
         try
         {
-            var received = handler.Receive(buffer, SocketFlags.None);
+            var received = socket.Receive(buffer, SocketFlags.None);
             var response = Encoding.UTF8.GetString(buffer, 0, received);
 
-            Console.WriteLine($"Клиент шифр.: {response}");
-            response = enc.Decrypt(response);
-            Console.WriteLine($"Клиент: {response}");
+            //response = enc.Decrypt(response);
+
+            SendMessage(response, sockets.Where(s => s != socket && s.Connected).ToArray());
         }
-        catch
+        catch (Exception ex)
         {
+            socket.Dispose();
+            sockets.Remove(socket);
+            Console.WriteLine(ex.Message);
+            alwaysStayAlive = false;
             break;
         }
     }

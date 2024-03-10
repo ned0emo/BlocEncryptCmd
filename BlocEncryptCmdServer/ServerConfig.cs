@@ -8,7 +8,8 @@ namespace BlocEncryptCmdServer
 {
     public enum ConfigKey
     {
-        ChatSecret,
+        ConfigSecret,
+        UsersData,
     }
 
     public class ServerConfig
@@ -50,9 +51,9 @@ namespace BlocEncryptCmdServer
                 configs.Add(pair[0].Trim(), pair[1].Trim());
             }
 
-            if (!configs.ContainsKey(ConfigKey.ChatSecret.ToString()))
+            if (!configs.ContainsKey(ConfigKey.ConfigSecret.ToString()))
             {
-                Console.WriteLine("Введите кодовое слово для шифрования сообщений (кириллица, только заглавные буквы):");
+                Console.WriteLine("Введите кодовое слово для шифрования конфигурации (кириллица, только заглавные буквы):");
                 string? secret;
                 do
                 {
@@ -75,7 +76,7 @@ namespace BlocEncryptCmdServer
                     }
                 } while (true);
 
-                configs.Add(ConfigKey.ChatSecret.ToString(), secret);
+                configs.Add(ConfigKey.ConfigSecret.ToString(), secret);
             }
 
             await SaveConfig();

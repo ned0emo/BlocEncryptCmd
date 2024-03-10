@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlocEncryptCmdClient
+namespace BlocEncryptCmdClient2
 {
     public enum ConfigKey
     {
@@ -12,14 +12,14 @@ namespace BlocEncryptCmdClient
         Username,
     }
 
-    public class ClientConfig
+    public class Client2Config
     {
         const string cfgFileName = "./config.txt";
         const string alphabet = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
 
         readonly Dictionary<string, string> configs;
 
-        public ClientConfig()
+        public Client2Config()
         {
             configs = [];
         }
