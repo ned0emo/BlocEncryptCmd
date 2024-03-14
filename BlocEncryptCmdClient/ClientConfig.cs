@@ -30,12 +30,12 @@ namespace BlocEncryptCmdClient
 
             if (!File.Exists(cfgFileName))
             {
-                StreamWriter sw = new(cfgFileName);
+                using StreamWriter sw = new(cfgFileName);
                 await sw.WriteAsync("");
                 sw.Close();
             }
 
-            StreamReader sr = new(cfgFileName);
+            using StreamReader sr = new(cfgFileName);
             var content = await sr.ReadToEndAsync();
             sr.Close();
 

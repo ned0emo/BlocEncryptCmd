@@ -2,8 +2,10 @@
 using System.Net;
 using System.Text;
 using BlocEncryptCmdClient2;
+using System.Text.Json;
 
 var config = new Client2Config();
+bool isFirstRun = true;
 
 try
 {
@@ -57,12 +59,19 @@ void ClientReciever()
             var received = client.Receive(buffer, SocketFlags.None);
             var response = Encoding.UTF8.GetString(buffer, 0, received);
 
-            var username = response[0..response.IndexOf('|')];
-            var secret = response[(response.IndexOf('|')+1)..response.IndexOf("||")];
-            var message = new Client2Encryptor(secret).Decrypt(response[(response.IndexOf("||")+2)..]);
+            try
+            {
+                var messageData = JsonSerializer.Deserialize<Message2>(response);
+                Console.WriteLine($"{messageData!.Username}: {new Client2Encryptor(messageData.Secret).Decrypt(messageData.MessageData)}");
+            }
+            catch { }
 
-            //response = enc.Decrypt(response);
-            Console.WriteLine($"{username}: {message}");
+            //var username = response[0..response.IndexOf('|')];
+            //var secret = response[(response.IndexOf('|') + 1)..response.IndexOf("||")];
+            //var message = new ClientEncryptor(secret).Decrypt(response[(response.IndexOf("||") + 2)..]);
+            //
+            ////response = enc.Decrypt(response);
+            //Console.WriteLine($"{username}: {message}");
         }
         catch (Exception ex)
         {
@@ -78,12 +87,29 @@ void ClientSender()
 {
     while (true)
     {
-        var message = Console.ReadLine();
+        string? message;
+        if (!isFirstRun)
+        {
+            message = Console.ReadLine();
+        }
+        else
+        {
+            message = "";
+            isFirstRun = false;
+        }
+
         if (message == null) continue;
         try
         {
-            message = $"{config.GetValue(ConfigKey.Username)}|{config.GetValue(ConfigKey.ChatSecret)}||" + enc.Encrypt(message);
-            var messageBytes = Encoding.UTF8.GetBytes(message);
+            var messageData = new Message2
+            {
+                MessageData = enc.Encrypt(message),
+                Username = config.GetValue(ConfigKey.Username)!,
+                Secret = config.GetValue(ConfigKey.ChatSecret)!,
+            };
+
+            //message = $"{config.GetValue(ConfigKey.Username)}|{config.GetValue(ConfigKey.ChatSecret)}||" + enc.Encrypt(message);
+            var messageBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(messageData));
             _ = client.Send(messageBytes, SocketFlags.None);
         }
         catch (Exception ex)
