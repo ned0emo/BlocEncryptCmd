@@ -62,6 +62,7 @@ void ClientReciever()
             try
             {
                 var messageData = JsonSerializer.Deserialize<Message2>(response);
+                Console.WriteLine($"{messageData!.Username}: {messageData.MessageData}");
                 Console.WriteLine($"{messageData!.Username}: {new Client2Encryptor(messageData.Secret).Decrypt(messageData.MessageData)}");
             }
             catch { }
